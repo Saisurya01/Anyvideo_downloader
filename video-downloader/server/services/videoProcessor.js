@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const YTDLP_CMD = process.platform === 'win32' 
   ? 'python -m yt_dlp' 
   : 'yt-dlp';
-const YTDLP_EXTRA = '--no-check-certificate --extractor-args "youtube:player_client=web,default_client=web" --extractor-args "youtube:player_skip=webpage,configs"';
+const YTDLP_EXTRA = '--no-check-certificate';
 const FFMPEG_PATH = 'ffmpeg';
 console.log('Using yt-dlp command:', YTDLP_CMD);
 console.log('Using ffmpeg path:', FFMPEG_PATH);
@@ -49,34 +49,55 @@ const detectPlatform = (url) => {
   return 'Unknown';
 };
 
+const INVIDIOUS_INSTANCES = [
+  'https://invidious.jingl.xyz',
+  'https://invidious.privacydev.net',
+  'https://invidious.snopyta.org',
+];
+
 export const getVideoInfo = async (url) => {
-  try {
-    const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
-    const clientArg = '--extractor-args "youtube:player_client=tv"';
-    const command = `${ytdlp} ${YTDLP_EXTRA} ${clientArg} --dump-json --no-download "${url}"`;
-    console.log('Getting video info with command:', command);
-    const { stdout } = await execAsync(command, { maxBuffer: 50 * 1024 * 1024, shell: true });
-    
-    const info = JSON.parse(stdout);
-    
-    const duration = info.duration ? formatDuration(info.duration) : 'Unknown';
-    const thumbnail = info.thumbnail || info.thumbnails?.[0]?.url || '';
-    const title = info.title || 'Unknown Title';
-    const platform = detectPlatform(url);
-    
-    const formats = extractAvailableFormats(info);
-    
-    return {
-      title,
-      thumbnail,
-      duration,
-      platform,
-      formats,
-    };
-  } catch (error) {
-    console.error('Error getting video info:', error.message);
-    throw new Error(`Failed to fetch video information: ${error.message}`);
+  const videoId = extractVideoId(url);
+  if (!videoId) {
+    throw new Error('Invalid YouTube URL');
   }
+
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const response = await fetch(`${instance}/api/v1/videos/${videoId}`);
+      if (!response.ok) continue;
+      
+      const data = await response.json();
+      return {
+        title: data.title || 'Unknown',
+        thumbnail: data.thumbnailUrl || '',
+        duration: formatDuration(data.lengthSeconds) || 'Unknown',
+        platform: 'YouTube',
+        formats: [
+          { quality: '1080p', type: 'mp4', formatId: '1080p' },
+          { quality: '720p', type: 'mp4', formatId: '720p' },
+          { quality: '480p', type: 'mp4', formatId: '480p' },
+          { quality: 'audio', type: 'mp3', formatId: 'audio' },
+        ],
+      };
+    } catch (e) {
+      console.log(`Failed ${instance}:`, e.message);
+      continue;
+    }
+  }
+
+  throw new Error('Could not fetch video. YouTube may be blocking the server. Try a different video or platform.');
+};
+
+const extractVideoId = (url) => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
 };
 
 const formatDuration = (seconds) => {
