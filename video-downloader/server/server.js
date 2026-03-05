@@ -35,8 +35,7 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
-app.use('/api/', limiter);
-
+app.use('/api', limiter);
 app.use('/api', videoRoutes);
 
 const frontendPath = path.join(__dirname, '../dist');
