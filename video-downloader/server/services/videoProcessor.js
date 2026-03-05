@@ -50,42 +50,72 @@ const detectPlatform = (url) => {
 };
 
 const INVIDIOUS_INSTANCES = [
-  'https://invidious.jingl.xyz',
   'https://invidious.privacydev.net',
   'https://invidious.snopyta.org',
+  'https://invidious.jingl.xyz',
+  'https://invidious.kavin.rocks',
+  'https://pipedapi.kavin.rocks',
 ];
 
-export const getVideoInfo = async (url) => {
-  const videoId = extractVideoId(url);
-  if (!videoId) {
-    throw new Error('Invalid YouTube URL');
-  }
+const isYouTube = (url) => url.includes('youtube.com') || url.includes('youtu.be');
 
-  for (const instance of INVIDIOUS_INSTANCES) {
-    try {
-      const response = await fetch(`${instance}/api/v1/videos/${videoId}`);
-      if (!response.ok) continue;
-      
-      const data = await response.json();
-      return {
-        title: data.title || 'Unknown',
-        thumbnail: data.thumbnailUrl || '',
-        duration: formatDuration(data.lengthSeconds) || 'Unknown',
-        platform: 'YouTube',
-        formats: [
-          { quality: '1080p', type: 'mp4', formatId: '1080p' },
-          { quality: '720p', type: 'mp4', formatId: '720p' },
-          { quality: '480p', type: 'mp4', formatId: '480p' },
-          { quality: 'audio', type: 'mp3', formatId: 'audio' },
-        ],
-      };
-    } catch (e) {
-      console.log(`Failed ${instance}:`, e.message);
-      continue;
+export const getVideoInfo = async (url) => {
+  const platform = detectPlatform(url);
+  
+  if (isYouTube(url)) {
+    const videoId = extractVideoId(url);
+    if (videoId) {
+      for (const instance of INVIDIOUS_INSTANCES) {
+        try {
+          const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+          if (!response.ok) continue;
+          
+          const data = await response.json();
+          return {
+            title: data.title || 'Unknown',
+            thumbnail: data.thumbnailUrl || '',
+            duration: formatDuration(data.lengthSeconds) || 'Unknown',
+            platform: 'YouTube',
+            formats: [
+              { quality: '1080p', type: 'mp4', formatId: '1080p' },
+              { quality: '720p', type: 'mp4', formatId: '720p' },
+              { quality: '480p', type: 'mp4', formatId: '480p' },
+              { quality: 'audio', type: 'mp3', formatId: 'audio' },
+            ],
+          };
+        } catch (e) {
+          console.log(`Invidious ${instance} failed:`, e.message);
+          continue;
+        }
+      }
     }
   }
 
-  throw new Error('Could not fetch video. YouTube may be blocking the server. Try a different video or platform.');
+  try {
+    const command = `${YTDLP_CMD} ${YTDLP_EXTRA} --dump-json --no-download "${url}"`;
+    console.log('Getting video info with:', command);
+    const { stdout } = await execAsync(command, { maxBuffer: 50 * 1024 * 1024, shell: true });
+    
+    const info = JSON.parse(stdout);
+    return {
+      title: info.title || 'Unknown',
+      thumbnail: info.thumbnail || info.thumbnails?.[0]?.url || '',
+      duration: formatDuration(info.duration) || 'Unknown',
+      platform,
+      formats: [
+        { quality: '1080p', type: 'mp4', formatId: 'best[height<=1080]' },
+        { quality: '720p', type: 'mp4', formatId: 'best[height<=720]' },
+        { quality: '480p', type: 'mp4', formatId: 'best[height<=480]' },
+        { quality: 'audio', type: 'mp3', formatId: 'bestaudio' },
+      ],
+    };
+  } catch (error) {
+    console.error('yt-dlp error:', error.message);
+    throw new Error(`Failed to fetch video: ${error.message}`);
+  }
 };
 
 const extractVideoId = (url) => {
@@ -129,13 +159,6 @@ const extractAvailableFormats = (info) => {
 };
 
 export const downloadVideo = async (url, format, res) => {
-  const videoId = extractVideoId(url);
-  
-  if (videoId) {
-    await downloadFromInvidious(videoId, format, res);
-    return;
-  }
-  
   const outputPath = path.join(TEMP_VIDEO_DIR, `video_${Date.now()}`);
   
   if (!fs.existsSync(TEMP_VIDEO_DIR)) {
@@ -144,8 +167,15 @@ export const downloadVideo = async (url, format, res) => {
   
   const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
   let command;
+  
   if (format === 'mp3') {
     command = `${ytdlp} -x --audio-format mp3 -o "${outputPath}.%(ext)s" "${url}"`;
+  } else if (format === '1080p') {
+    command = `${ytdlp} -f "bestvideo[height<=1080]+bestaudio/best[height<=1080]" -o "${outputPath}.%(ext)s" "${url}"`;
+  } else if (format === '720p') {
+    command = `${ytdlp} -f "best[height<=720]" -o "${outputPath}.%(ext)s" "${url}"`;
+  } else if (format === '480p') {
+    command = `${ytdlp} -f "best[height<=480]" -o "${outputPath}.%(ext)s" "${url}"`;
   } else {
     command = `${ytdlp} -f best -o "${outputPath}.%(ext)s" "${url}"`;
   }
@@ -155,6 +185,7 @@ export const downloadVideo = async (url, format, res) => {
   try {
     await execAsync(command, { maxBuffer: 500 * 1024 * 1024, shell: true });
   } catch (execError) {
+    console.error('Download error:', execError.message);
     throw new Error(`Download failed: ${execError.message}`);
   }
   
@@ -232,17 +263,6 @@ const downloadFromInvidious = async (videoId, format, res) => {
     }
   }
   throw new Error('Download failed. Try a different video.');
-};
-  
-  setTimeout(() => {
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (e) {
-      console.error('Error cleaning up file:', e);
-    }
-  }, 5000);
 };
 
 export const cleanupOldFiles = () => {
