@@ -9,19 +9,16 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY video-downloader/package*.json ./video-downloader/
-WORKDIR /app/video-downloader
+COPY package*.json ./
+COPY server/package*.json ./server/
+
 RUN npm install
 
-COPY video-downloader/server/package*.json ./server/
-WORKDIR /app/video-downloader/server
-RUN npm install
-
-WORKDIR /app/video-downloader
 RUN npm run build
 
-WORKDIR /app/video-downloader/server
+COPY server ./server
 
 EXPOSE 3001
 
+WORKDIR /app/server
 CMD ["node", "server.js"]
