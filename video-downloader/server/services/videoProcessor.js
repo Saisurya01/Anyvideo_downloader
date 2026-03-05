@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const YTDLP_CMD = process.platform === 'win32' 
   ? 'python -m yt_dlp' 
-  : 'yt-dlp';
+  : 'deno run -A npm:yt-dlp';
 const YTDLP_EXTRA = '--no-check-certificate';
 const FFMPEG_PATH = 'ffmpeg';
 console.log('Using yt-dlp command:', YTDLP_CMD);
