@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const YTDLP_CMD = process.platform === 'win32' 
   ? 'python -m yt_dlp' 
   : 'yt-dlp';
-const YTDLP_EXTRA = '--no-check-certificate --extractor-args "youtube:player_client=web,default_client=web"';
+const YTDLP_EXTRA = '--no-check-certificate --extractor-args "youtube:player_client=web,default_client=web" --extractor-args "youtube:player_skip=webpage,configs"';
 const FFMPEG_PATH = 'ffmpeg';
 console.log('Using yt-dlp command:', YTDLP_CMD);
 console.log('Using ffmpeg path:', FFMPEG_PATH);
@@ -52,10 +52,10 @@ const detectPlatform = (url) => {
 export const getVideoInfo = async (url) => {
   try {
     const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
-    const clientArg = '--extractor-args "youtube:player_client=web"';
+    const clientArg = '--extractor-args "youtube:player_client=tv"';
     const command = `${ytdlp} ${YTDLP_EXTRA} ${clientArg} --dump-json --no-download "${url}"`;
     console.log('Getting video info with command:', command);
-    const { stdout } = await execAsync(command, { maxBuffer: 50 * 1024 * 1024 });
+    const { stdout } = await execAsync(command, { maxBuffer: 50 * 1024 * 1024, shell: true });
     
     const info = JSON.parse(stdout);
     
@@ -116,7 +116,7 @@ export const downloadVideo = async (url, format, res) => {
   }
   
   const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
-  const clientArg = '--extractor-args "youtube:player_client=web"';
+  const clientArg = '--extractor-args "youtube:player_client=tv"';
   let command;
   if (format === 'mp3') {
     command = `${ytdlp} -x --audio-format mp3 ${clientArg} -o "${outputPath}.%(ext)s" "${url}"`;
