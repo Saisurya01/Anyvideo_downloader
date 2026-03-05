@@ -12,8 +12,8 @@ const __dirname = path.dirname(__filename);
 
 const YTDLP_CMD = process.platform === 'win32' 
   ? 'python -m yt_dlp' 
-  : 'deno run -A npm:yt-dlp';
-const YTDLP_EXTRA = '--no-check-certificate';
+  : 'yt-dlp';
+const YTDLP_EXTRA = '--no-check-certificate --extractor-args "youtube:player_client=web,default_client=web"';
 const FFMPEG_PATH = 'ffmpeg';
 console.log('Using yt-dlp command:', YTDLP_CMD);
 console.log('Using ffmpeg path:', FFMPEG_PATH);
@@ -51,8 +51,9 @@ const detectPlatform = (url) => {
 
 export const getVideoInfo = async (url) => {
   try {
-    const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'deno run -A npm:yt-dlp';
-    const command = `${ytdlp} ${YTDLP_EXTRA} --extractor-args "youtube:player_client=android" --dump-json --no-download "${url}"`;
+    const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
+    const clientArg = '--extractor-args "youtube:player_client=web"';
+    const command = `${ytdlp} ${YTDLP_EXTRA} ${clientArg} --dump-json --no-download "${url}"`;
     console.log('Getting video info with command:', command);
     const { stdout } = await execAsync(command, { maxBuffer: 50 * 1024 * 1024 });
     
@@ -114,13 +115,13 @@ export const downloadVideo = async (url, format, res) => {
     fs.mkdirSync(TEMP_VIDEO_DIR, { recursive: true });
   }
   
-  // Use Android client to bypass bot detection
-  const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'deno run -A npm:yt-dlp';
+  const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
+  const clientArg = '--extractor-args "youtube:player_client=web"';
   let command;
   if (format === 'mp3') {
-    command = `${ytdlp} -x --audio-format mp3 --extractor-args "youtube:player_client=android" -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -x --audio-format mp3 ${clientArg} -o "${outputPath}.%(ext)s" "${url}"`;
   } else {
-    command = `${ytdlp} -f best --extractor-args "youtube:player_client=android" -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f best ${clientArg} -o "${outputPath}.%(ext)s" "${url}"`;
   }
   
   console.log('Downloading with command:', command);
