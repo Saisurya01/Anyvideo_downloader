@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#2463eb",
+                "background-light": "#f6f6f8",
+                "background-dark": "#111621",
+              },
+              fontFamily: {
+                "display": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+      </script>
+<title>Universal Video Downloader - Processing</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-6 md:px-20 py-4 sticky top-0 z-40">
+<div class="flex items-center gap-3 text-slate-900 dark:text-slate-100">
+<div class="text-primary">
+<span class="material-symbols-outlined text-3xl">movie_filter</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight">Universal Video Downloader</h2>
+</div>
+<div class="hidden md:flex flex-1 justify-end gap-8 items-center">
+<div class="flex items-center gap-8">
+<a class="text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Features</a>
+<a class="text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">How it Works</a>
+<a class="text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Pricing</a>
+</div>
+<button class="flex min-w-[100px] cursor-pointer items-center justify-center rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20">
+<span>Sign In</span>
+</button>
+</div>
+</header>
+<main class="relative flex-grow flex flex-col">
+<!-- Hero Section (Blurred Background) -->
+<div class="relative w-full px-4 md:px-20 py-12 filter blur-sm opacity-50 pointer-events-none">
+<div class="max-w-[1200px] mx-auto">
+<div class="relative overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-800 aspect-[21/9] flex flex-col items-center justify-center p-8 text-center" data-alt="Abstract cinematic video editing background texture" style='background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBaPoSSI3XEOoOUWBQZHzeyDnaIjsr5WS9GBjD9dkCLLRRyfbw58v1a3a-HxL9sWOlarO-OV8avlMsHXkcCY9jHJ7WPaeSmXecoa4hOQtNv_IfRddpXyz0YPJDMDui1OE1xjmhUjhdWylj5iiK-lCKSTw90qjZpZwhecriQSAcEchpHTAQ_aQQ_kd1rk593zSNedLcZSgDh21t3vXJdhS3LB-328wPAvzfD_sTDOljsaUi3SUM44Q8etn6xkFepwj91bIycN9oZ-mPA"); background-size: cover; background-position: center;'>
+<h1 class="text-white text-4xl md:text-6xl font-black mb-4">Download Any Video Instantly</h1>
+<p class="text-slate-200 text-lg max-w-2xl">Support for over 1000+ platforms in 4K resolution. YouTube, TikTok, Instagram, and more.</p>
+</div>
+<div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="p-6 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+<span class="material-symbols-outlined text-primary mb-4">speed</span>
+<h3 class="font-bold mb-2">High Speed</h3>
+<p class="text-sm text-slate-500">Fastest download speeds available.</p>
+</div>
+<div class="p-6 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+<span class="material-symbols-outlined text-primary mb-4">hd</span>
+<h3 class="font-bold mb-2">4K Quality</h3>
+<p class="text-sm text-slate-500">Highest resolutions supported.</p>
+</div>
+<div class="p-6 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+<span class="material-symbols-outlined text-primary mb-4">security</span>
+<h3 class="font-bold mb-2">Secure</h3>
+<p class="text-sm text-slate-500">Encrypted and safe downloads.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Processing Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/10 backdrop-blur-[2px]">
+<div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center text-center">
+<!-- Spinner -->
+<div class="relative w-20 h-20 mb-6">
+<div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+<div class="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">downloading</span>
+</div>
+</div>
+<!-- Text Content -->
+<div class="space-y-2">
+<h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Fetching video information...</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">We're parsing the URL and identifying available formats. This usually takes just a few seconds.</p>
+</div>
+<!-- Progress Visual -->
+<div class="w-full mt-8 space-y-3">
+<div class="flex justify-between items-center text-xs font-medium text-slate-500">
+<span>Connecting to server</span>
+<span class="text-primary">35%</span>
+</div>
+<div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 35%;"></div>
+</div>
+<p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Please do not refresh the page</p>
+</div>
+<!-- Action Button -->
+<button class="mt-8 flex w-full items-center justify-center rounded-lg h-11 px-6 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-semibold transition-colors">
+<span>Cancel Request</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="flex flex-col gap-6 px-6 md:px-20 py-10 text-center bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800">
+<div class="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+<a class="text-slate-500 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="text-slate-500 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="text-slate-500 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Contact Support</a>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="text-slate-300 dark:text-slate-700">
+<span class="material-symbols-outlined text-4xl">movie_filter</span>
+</div>
+<p class="text-slate-400 dark:text-slate-500 text-xs">© 2024 Universal Video Downloader. High-speed video extraction technology.</p>
+</div>
+</footer>
+</div>
+</body></html>
