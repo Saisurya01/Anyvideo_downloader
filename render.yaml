@@ -1,6 +1,0 @@
-services:
-  - type: docker
-    name: video-downloader
-    rootDir: video-downloader
-    dockerfilePath: Dockerfile
-    instanceType: free
