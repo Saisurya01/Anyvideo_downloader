@@ -129,45 +129,37 @@ const extractAvailableFormats = (info) => {
 };
 
 export const downloadVideo = async (url, format, res) => {
+  const videoId = extractVideoId(url);
+  
+  if (videoId) {
+    await downloadFromInvidious(videoId, format, res);
+    return;
+  }
+  
   const outputPath = path.join(TEMP_VIDEO_DIR, `video_${Date.now()}`);
   
-  // Ensure temp directory exists
   if (!fs.existsSync(TEMP_VIDEO_DIR)) {
     fs.mkdirSync(TEMP_VIDEO_DIR, { recursive: true });
   }
   
   const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
-  const clientArg = '--extractor-args "youtube:player_client=tv"';
   let command;
   if (format === 'mp3') {
-    command = `${ytdlp} -x --audio-format mp3 ${clientArg} -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -x --audio-format mp3 -o "${outputPath}.%(ext)s" "${url}"`;
   } else {
-    command = `${ytdlp} -f best ${clientArg} -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f best -o "${outputPath}.%(ext)s" "${url}"`;
   }
   
   console.log('Downloading with command:', command);
-  console.log('Output path:', outputPath);
   
   try {
-    const { stdout, stderr } = await execAsync(command, { 
-      maxBuffer: 500 * 1024 * 1024, 
-      shell: true
-    });
-    console.log('Command completed');
-    console.log('stdout:', stdout ? stdout.slice(-500) : 'none');
-    if (stderr) console.log('stderr:', stderr.slice(-500));
+    await execAsync(command, { maxBuffer: 500 * 1024 * 1024, shell: true });
   } catch (execError) {
-    console.error('Download error:', execError.message);
-    if (execError.stderr) console.error('stderr:', execError.stderr.slice(-500));
     throw new Error(`Download failed: ${execError.message}`);
   }
   
   const allFiles = fs.readdirSync(TEMP_VIDEO_DIR);
-  
-  // Find any video file
   const files = allFiles.filter(f => f.startsWith('video_') && (f.endsWith('.mp4') || f.endsWith('.mp3') || f.endsWith('.m4a')));
-  
-  // Get the most recent file
   const downloadedFile = files.length > 0 ? files[files.length - 1] : null;
   
   if (!downloadedFile) {
@@ -178,15 +170,69 @@ export const downloadVideo = async (url, format, res) => {
   const stat = fs.statSync(filePath);
   const ext = path.extname(downloadedFile);
   
-  const contentType = ext === '.mp3' ? 'audio/mpeg' : 'video/mp4';
-  
-  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Type', ext === '.mp3' ? 'audio/mpeg' : 'video/mp4');
   res.setHeader('Content-Length', stat.size);
   res.setHeader('Content-Disposition', `attachment; filename="video${ext}"`);
   
   const readStream = fs.createReadStream(filePath);
-  
   await pipeline(readStream, res);
+  
+  setTimeout(() => {
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (e) {}
+  }, 5000);
+};
+
+const downloadFromInvidious = async (videoId, format, res) => {
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const response = await fetch(`${instance}/api/v1/videos/${videoId}`);
+      if (!response.ok) continue;
+      
+      const data = await response.json();
+      const formatMap = {
+        '1080p': 'video-1080',
+        '720p': 'video-720',
+        '480p': 'video-480',
+        'audio': 'audio',
+      };
+      
+      let downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('video/mp4') && f.qualityLabel === '1080p')?.url;
+      if (!downloadUrl || format === '720p') {
+        downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('video/mp4') && f.qualityLabel === '720p')?.url;
+      }
+      if (!downloadUrl || format === '480p') {
+        downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('video/mp4') && f.qualityLabel === '480p')?.url;
+      }
+      if (!downloadUrl || format === 'mp3') {
+        downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('audio'))?.url;
+      }
+      
+      if (!downloadUrl) {
+        downloadUrl = data.adaptiveFormats?.[0]?.url;
+      }
+      
+      if (!downloadUrl) continue;
+      
+      console.log('Downloading from Invidious:', instance);
+      
+      const videoResponse = await fetch(downloadUrl);
+      if (!videoResponse.ok) continue;
+      
+      const ext = format === 'mp3' ? '.mp4' : '.mp4';
+      res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
+      res.setHeader('Content-Disposition', `attachment; filename="${data.title || 'video'}.${format === 'mp3' ? 'mp3' : 'mp4'}"`);
+      
+      await pipeline(videoResponse.body, res);
+      return;
+    } catch (e) {
+      console.log('Failed:', e.message);
+      continue;
+    }
+  }
+  throw new Error('Download failed. Try a different video.');
+};
   
   setTimeout(() => {
     try {
