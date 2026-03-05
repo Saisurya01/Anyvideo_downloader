@@ -51,7 +51,8 @@ const detectPlatform = (url) => {
 
 export const getVideoInfo = async (url) => {
   try {
-    const command = `${YTDLP_CMD} ${YTDLP_EXTRA} --dump-json --no-download "${url}"`;
+    const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'deno run -A npm:yt-dlp';
+    const command = `${ytdlp} ${YTDLP_EXTRA} --extractor-args "youtube:player_client=android" --dump-json --no-download "${url}"`;
     console.log('Getting video info with command:', command);
     const { stdout } = await execAsync(command, { maxBuffer: 50 * 1024 * 1024 });
     
@@ -113,12 +114,13 @@ export const downloadVideo = async (url, format, res) => {
     fs.mkdirSync(TEMP_VIDEO_DIR, { recursive: true });
   }
   
-  // Use simple best format - most compatible
+  // Use Android client to bypass bot detection
+  const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'deno run -A npm:yt-dlp';
   let command;
   if (format === 'mp3') {
-    command = `python -m yt_dlp -x --audio-format mp3 -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -x --audio-format mp3 --extractor-args "youtube:player_client=android" -o "${outputPath}.%(ext)s" "${url}"`;
   } else {
-    command = `python -m yt_dlp -f best -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f best --extractor-args "youtube:player_client=android" -o "${outputPath}.%(ext)s" "${url}"`;
   }
   
   console.log('Downloading with command:', command);
