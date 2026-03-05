@@ -14,14 +14,14 @@ const YTDLP_CMD = process.platform === 'win32'
   ? 'python -m yt_dlp' 
   : 'yt-dlp';
 const YTDLP_EXTRA = '--no-check-certificate';
-const FFMPEG_PATH = process.platform === 'win32' 
-  ? 'C:/ffmpeg/bin/ffmpeg.exe' 
-  : 'ffmpeg';
+const FFMPEG_PATH = 'ffmpeg';
 console.log('Using yt-dlp command:', YTDLP_CMD);
 console.log('Using ffmpeg path:', FFMPEG_PATH);
 
 // Use app directory for temp files to avoid path issues
-const TEMP_VIDEO_DIR = path.join(__dirname, 'temp_downloads');
+const TEMP_VIDEO_DIR = process.platform === 'win32' 
+  ? path.join(__dirname, 'temp_downloads')
+  : '/tmp/video-downloads';
 
 console.log('Temp directory:', TEMP_VIDEO_DIR);
 
