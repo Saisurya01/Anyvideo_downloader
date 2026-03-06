@@ -6,8 +6,13 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { promisify } from 'util';
+import { exec } from 'child_process';
+import fs from 'fs';
 
 dotenv.config();
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +42,7 @@ const limiter = rateLimit({
 
 app.use('/api', limiter);
 
-const videoRoutes = (await import('./server/routes/video.js')).default;
+const videoRoutes = (await import('./video-downloader/server/routes/video.js')).default;
 app.use('/api', videoRoutes);
 
 const frontendPath = path.join(__dirname, 'video-downloader/dist');
@@ -56,6 +61,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });

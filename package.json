@@ -4,7 +4,15 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "install-all": "npm install && cd video-downloader && npm install && cd server && npm install"
+    "build": "cd video-downloader && npm run build"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^7.4.0"
   },
   "engines": {
     "node": ">=18"

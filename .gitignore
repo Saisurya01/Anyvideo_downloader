@@ -1,0 +1,10 @@
+node_modules/
+.env
+*.mp4
+*.log
+.DS_Store
+video_results/
+processing_state/
+landing_page/
+nul
+test_*
