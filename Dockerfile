@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install yt-dlp
+RUN pip3 install yt-dlp --break-system-packages
 
 COPY package.json ./
 COPY video-downloader/package.json ./video-downloader/
