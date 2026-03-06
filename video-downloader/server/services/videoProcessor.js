@@ -185,6 +185,7 @@ export const downloadVideo = async (url, format, res) => {
   const videoId = isYT ? extractVideoId(url) : null;
   
   if (isYT && videoId) {
+    console.log('Trying YouTube download for video ID:', videoId);
     try {
       await downloadFromPiped(videoId, format, res);
       return;
@@ -209,15 +210,15 @@ export const downloadVideo = async (url, format, res) => {
   let command;
   
   if (format === 'mp3') {
-    command = `${ytdlp} -x --audio-format mp3 --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -x --audio-format mp3 -o "${outputPath}.%(ext)s" "${url}"`;
   } else if (format === '1080p') {
-    command = `${ytdlp} -f "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best" --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best" -o "${outputPath}.%(ext)s" "${url}"`;
   } else if (format === '720p') {
-    command = `${ytdlp} -f "bestvideo[height<=720]+bestaudio/best[height<=720]/best" --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f "bestvideo[height<=720]+bestaudio/best[height<=720]/best" -o "${outputPath}.%(ext)s" "${url}"`;
   } else if (format === '480p') {
-    command = `${ytdlp} -f "bestvideo[height<=480]+bestaudio/best[height<=480]/best" --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f "bestvideo[height<=480]+bestaudio/best[height<=480]/best" -o "${outputPath}.%(ext)s" "${url}"`;
   } else {
-    command = `${ytdlp} --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f best -o "${outputPath}.%(ext)s" "${url}"`;
   }
   
   console.log('Downloading with command:', command);
@@ -280,24 +281,31 @@ export const downloadVideo = async (url, format, res) => {
 const PIPED_INSTANCES = [
   'https://pipedapi.adminforge.de',
   'https://pipedapi.lunar.icu',
-  'https://api.piped.yt',
+  'https://pipedapi.kavin.rocks',
 ];
 
 const downloadFromPiped = async (videoId, format, res) => {
   for (const instance of PIPED_INSTANCES) {
     try {
-      const response = await fetch(`${instance}/streams/${videoId}`);
-      if (!response.ok) continue;
+      console.log('Trying Piped instance:', instance);
+      const response = await fetch(`${instance}/streams/${videoId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      if (!response.ok) {
+        console.log('Piped response not ok:', response.status);
+        continue;
+      }
       
       const data = await response.json();
+      console.log('Piped data received');
       
       let streams = data.videoStreams || [];
       if (format === '1080p') {
-        streams = streams.filter(s => s.resolution.includes('1080'));
+        streams = streams.filter(s => s.resolution?.includes('1080'));
       } else if (format === '720p') {
-        streams = streams.filter(s => s.resolution.includes('720'));
+        streams = streams.filter(s => s.resolution?.includes('720'));
       } else if (format === '480p') {
-        streams = streams.filter(s => s.resolution.includes('480'));
+        streams = streams.filter(s => s.resolution?.includes('480'));
       }
       
       let downloadUrl = streams[0]?.url;
@@ -309,10 +317,12 @@ const downloadFromPiped = async (videoId, format, res) => {
       
       console.log('Downloading from Piped:', instance);
       
-      const videoResponse = await fetch(downloadUrl);
+      const videoResponse = await fetch(downloadUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
       if (!videoResponse.ok) continue;
       
-      res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
+      res.setHeader('Content-Type', 'video/mp4');
       res.setHeader('Content-Disposition', `attachment; filename="${data.title || 'video'}.mp4"`);
       
       await pipeline(videoResponse.body, res);
@@ -328,47 +338,49 @@ const downloadFromPiped = async (videoId, format, res) => {
 const downloadFromInvidious = async (videoId, format, res) => {
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
-      const response = await fetch(`${instance}/api/v1/videos/${videoId}`);
-      if (!response.ok) continue;
+      console.log('Trying Invidious instance:', instance);
+      const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      if (!response.ok) {
+        console.log('Invidious response not ok:', response.status);
+        continue;
+      }
       
       const data = await response.json();
-      const formatMap = {
-        '1080p': 'video-1080',
-        '720p': 'video-720',
-        '480p': 'video-480',
-        'audio': 'audio',
-      };
+      console.log('Invidious data received, formats:', data.formatStreams?.length || data.adaptiveFormats?.length || 0);
       
-      let downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('video/mp4') && f.qualityLabel === '1080p')?.url;
-      if (!downloadUrl || format === '720p') {
-        downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('video/mp4') && f.qualityLabel === '720p')?.url;
+      const formats = data.formatStreams || data.adaptiveFormats || [];
+      
+      let selectedFormat = formats.find(f => f.resolution === '1920x1080' || f.qualityLabel === '1080p');
+      if (!selectedFormat || format === '720p') {
+        selectedFormat = formats.find(f => f.resolution === '1280x720' || f.qualityLabel === '720p');
       }
-      if (!downloadUrl || format === '480p') {
-        downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('video/mp4') && f.qualityLabel === '480p')?.url;
+      if (!selectedFormat || format === '480p') {
+        selectedFormat = formats.find(f => f.resolution === '854x480' || f.qualityLabel === '480p');
       }
-      if (!downloadUrl || format === 'mp3') {
-        downloadUrl = data.adaptiveFormats?.find(f => f.type.startsWith('audio'))?.url;
+      if (!selectedFormat) {
+        selectedFormat = formats[0];
       }
       
-      if (!downloadUrl) {
-        downloadUrl = data.adaptiveFormats?.[0]?.url;
-      }
+      let downloadUrl = selectedFormat?.url;
       
       if (!downloadUrl) continue;
       
       console.log('Downloading from Invidious:', instance);
       
-      const videoResponse = await fetch(downloadUrl);
+      const videoResponse = await fetch(downloadUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
       if (!videoResponse.ok) continue;
       
-      const ext = format === 'mp3' ? '.mp4' : '.mp4';
-      res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
-      res.setHeader('Content-Disposition', `attachment; filename="${data.title || 'video'}.${format === 'mp3' ? 'mp3' : 'mp4'}"`);
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Content-Disposition', `attachment; filename="${data.title || 'video'}.mp4"`);
       
       await pipeline(videoResponse.body, res);
       return;
     } catch (e) {
-      console.log('Failed:', e.message);
+      console.log('Invidious failed:', e.message);
       continue;
     }
   }
