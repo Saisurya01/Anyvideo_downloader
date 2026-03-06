@@ -1,0 +1,12 @@
+{
+  "name": "anyvideo-downloader",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "install-all": "npm install && cd video-downloader && npm install && cd server && npm install"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
