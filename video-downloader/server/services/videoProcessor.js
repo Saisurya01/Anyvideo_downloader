@@ -181,6 +181,24 @@ const extractAvailableFormats = (info) => {
 };
 
 export const downloadVideo = async (url, format, res) => {
+  const isYT = isYouTube(url);
+  const videoId = isYT ? extractVideoId(url) : null;
+  
+  if (isYT && videoId) {
+    try {
+      await downloadFromPiped(videoId, format, res);
+      return;
+    } catch (e) {
+      console.log('Piped failed, trying Invidious:', e.message);
+      try {
+        await downloadFromInvidious(videoId, format, res);
+        return;
+      } catch (e2) {
+        console.log('Invidious also failed:', e2.message);
+      }
+    }
+  }
+  
   const outputPath = path.join(TEMP_VIDEO_DIR, `video_${Date.now()}`);
   
   if (!fs.existsSync(TEMP_VIDEO_DIR)) {
@@ -257,6 +275,54 @@ export const downloadVideo = async (url, format, res) => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } catch (e) {}
   }, 5000);
+};
+
+const PIPED_INSTANCES = [
+  'https://pipedapi.adminforge.de',
+  'https://pipedapi.lunar.icu',
+  'https://api.piped.yt',
+];
+
+const downloadFromPiped = async (videoId, format, res) => {
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      const response = await fetch(`${instance}/streams/${videoId}`);
+      if (!response.ok) continue;
+      
+      const data = await response.json();
+      
+      let streams = data.videoStreams || [];
+      if (format === '1080p') {
+        streams = streams.filter(s => s.resolution.includes('1080'));
+      } else if (format === '720p') {
+        streams = streams.filter(s => s.resolution.includes('720'));
+      } else if (format === '480p') {
+        streams = streams.filter(s => s.resolution.includes('480'));
+      }
+      
+      let downloadUrl = streams[0]?.url;
+      if (!downloadUrl && data.audioStreams?.length > 0) {
+        downloadUrl = data.audioStreams[0].url;
+      }
+      
+      if (!downloadUrl) continue;
+      
+      console.log('Downloading from Piped:', instance);
+      
+      const videoResponse = await fetch(downloadUrl);
+      if (!videoResponse.ok) continue;
+      
+      res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
+      res.setHeader('Content-Disposition', `attachment; filename="${data.title || 'video'}.mp4"`);
+      
+      await pipeline(videoResponse.body, res);
+      return;
+    } catch (e) {
+      console.log('Piped failed:', e.message);
+      continue;
+    }
+  }
+  throw new Error('Download failed. Try a different video.');
 };
 
 const downloadFromInvidious = async (videoId, format, res) => {
