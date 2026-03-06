@@ -324,12 +324,6 @@ export const downloadVideo = async (url, format, res) => {
   }, 5000);
 };
 
-const PIPED_INSTANCES = [
-  'https://pipedapi.adminforge.de',
-  'https://pipedapi.lunar.icu',
-  'https://pipedapi.kavin.rocks',
-];
-
 const downloadFromPiped = async (videoId, format, res) => {
   for (const instance of PIPED_INSTANCES) {
     try {
