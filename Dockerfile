@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -13,6 +13,9 @@ RUN pip3 install yt-dlp --break-system-packages
 COPY package.json ./
 COPY video-downloader/package.json ./video-downloader/
 COPY video-downloader/server/package.json ./video-downloader/server/
+
+RUN rm -rf video-downloader/node_modules video-downloader/package-lock.json
+RUN rm -rf video-downloader/server/node_modules video-downloader/server/package-lock.json
 
 RUN npm install
 
