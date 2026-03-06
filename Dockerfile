@@ -6,9 +6,15 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     ffmpeg \
+    curl \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install yt-dlp --break-system-packages
+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp
 

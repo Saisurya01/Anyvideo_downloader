@@ -20,6 +20,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1);
+
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
