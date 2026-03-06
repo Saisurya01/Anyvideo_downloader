@@ -12,9 +12,10 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip3 install yt-dlp --break-system-packages
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://deno.land/install.sh | sh
+
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 RUN ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp
 
