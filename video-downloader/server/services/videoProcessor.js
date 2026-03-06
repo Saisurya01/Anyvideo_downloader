@@ -50,11 +50,11 @@ const detectPlatform = (url) => {
 };
 
 const INVIDIOUS_INSTANCES = [
-  'https://invidious.privacydev.net',
-  'https://invidious.snopyta.org',
+  'https://invidious.projectsegfau.lt',
+  'https://iv.ggtyler.dev',
   'https://invidious.jingl.xyz',
-  'https://invidious.kavin.rocks',
-  'https://pipedapi.kavin.rocks',
+  'https://invidious.privacydev.net',
+  'https://pipedapi.adminforge.de',
 ];
 
 const isYouTube = (url) => url.includes('youtube.com') || url.includes('youtu.be');
@@ -69,7 +69,10 @@ export const getVideoInfo = async (url) => {
         try {
           const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
             method: 'GET',
-            headers: { 'Accept': 'application/json' }
+            headers: { 
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
           });
           if (!response.ok) continue;
           
@@ -114,6 +117,25 @@ export const getVideoInfo = async (url) => {
     };
   } catch (error) {
     console.error('yt-dlp error:', error.message);
+    
+    if (isYouTube(url)) {
+      const videoId = extractVideoId(url);
+      if (videoId) {
+        return {
+          title: 'YouTube Video',
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          duration: 'Unknown',
+          platform: 'YouTube',
+          formats: [
+            { quality: '1080p', type: 'mp4', formatId: 'best[height<=1080]' },
+            { quality: '720p', type: 'mp4', formatId: 'best[height<=720]' },
+            { quality: '480p', type: 'mp4', formatId: 'best[height<=480]' },
+            { quality: 'audio', type: 'mp3', formatId: 'bestaudio' },
+          ],
+        };
+      }
+    }
+    
     throw new Error(`Failed to fetch video: ${error.message}`);
   }
 };

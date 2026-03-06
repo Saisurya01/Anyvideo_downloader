@@ -7,16 +7,10 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     ffmpeg \
     curl \
-    gnupg \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install yt-dlp --break-system-packages
-
-RUN curl -fsSL https://deno.land/install.sh | sh
-
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 RUN ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp
 
