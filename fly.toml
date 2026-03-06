@@ -1,0 +1,31 @@
+app = 'anyvideo-downloader'
+primary_region = 'lax'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[deploy]
+  release_command = 'npm run build'
+  process = 'app'
+
+[[services]]
+  http_checks = []
+  internal_port = 3001
+  processes = ['app']
+  protocol = 'tcp'
+  autostart = 'true'
+  autostop = 'true'
+
+[[services.ports]]
+  force_https = true
+  handlers = ['http']
+  port = 8080
+
+[[services.tcp_checks]]
+  grace_period = '30s'
+  interval = '15s'
+  restart_limit = 3
+  timeout = '5s'
+
+[env]
+  NODE_ENV = 'production'
