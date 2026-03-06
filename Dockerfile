@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
     gnupg \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install yt-dlp --break-system-packages
