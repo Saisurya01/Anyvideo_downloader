@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip3 install yt-dlp --break-system-packages
 
+RUN ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp
+
 COPY package.json ./
 COPY video-downloader/package.json ./video-downloader/
 COPY video-downloader/server/package.json ./video-downloader/server/

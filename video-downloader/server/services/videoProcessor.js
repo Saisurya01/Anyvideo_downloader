@@ -16,9 +16,7 @@ const YTDLP_CMD = process.platform === 'win32'
 const YTDLP_EXTRA = '--no-check-certificate';
 
 // Use app directory for temp files to avoid path issues
-const TEMP_VIDEO_DIR = process.platform === 'win32' 
-  ? path.join(__dirname, 'temp_downloads')
-  : '/tmp/video-downloads';
+const TEMP_VIDEO_DIR = '/tmp/video-downloads';
 
 console.log('Temp directory:', TEMP_VIDEO_DIR);
 
@@ -167,7 +165,7 @@ export const downloadVideo = async (url, format, res) => {
     fs.mkdirSync(TEMP_VIDEO_DIR, { recursive: true });
   }
   
-  const ytdlp = process.platform === 'win32' ? 'python -m yt_dlp' : 'yt-dlp';
+  const ytdlp = 'yt-dlp';
   let command;
   
   if (format === 'mp3') {
@@ -184,15 +182,24 @@ export const downloadVideo = async (url, format, res) => {
   
   console.log('Downloading with command:', command);
   
+  let stdout, stderr;
   try {
-    await execAsync(command, { maxBuffer: 500 * 1024 * 1024, shell: true });
+    const result = await execAsync(command, { maxBuffer: 500 * 1024 * 1024, shell: true });
+    stdout = result.stdout;
+    stderr = result.stderr;
+    console.log('yt-dlp stdout:', stdout);
+    if (stderr) console.log('yt-dlp stderr:', stderr);
   } catch (execError) {
     console.error('Download error:', execError.message);
+    if (execError.stdout) console.log('stdout:', execError.stdout);
+    if (execError.stderr) console.log('stderr:', execError.stderr);
+    
     if (execError.message.includes('Requested format is not available')) {
       const fallbackCommand = `${ytdlp} --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
       console.log('Retrying with best format:', fallbackCommand);
       try {
-        await execAsync(fallbackCommand, { maxBuffer: 500 * 1024 * 1024, shell: true });
+        const fallbackResult = await execAsync(fallbackCommand, { maxBuffer: 500 * 1024 * 1024, shell: true });
+        stdout = fallbackResult.stdout;
       } catch (fallbackError) {
         throw new Error(`Download failed: ${fallbackError.message}`);
       }
@@ -202,7 +209,9 @@ export const downloadVideo = async (url, format, res) => {
   }
   
   const allFiles = fs.readdirSync(TEMP_VIDEO_DIR);
+  console.log('Files in temp dir:', allFiles);
   const files = allFiles.filter(f => f.startsWith('video_') && (f.endsWith('.mp4') || f.endsWith('.mp3') || f.endsWith('.m4a')));
+  console.log('Downloaded files:', files);
   const downloadedFile = files.length > 0 ? files[files.length - 1] : null;
   
   if (!downloadedFile) {
