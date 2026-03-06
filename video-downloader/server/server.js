@@ -24,6 +24,7 @@ app.use(cors({
   origin: true,
   methods: ['GET', 'POST'],
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Accept', 'Origin'],
 }));
 
 app.use(morgan('dev'));

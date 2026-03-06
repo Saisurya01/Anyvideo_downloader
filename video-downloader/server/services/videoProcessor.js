@@ -169,15 +169,15 @@ export const downloadVideo = async (url, format, res) => {
   let command;
   
   if (format === 'mp3') {
-    command = `${ytdlp} -x --audio-format mp3 -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -x --audio-format mp3 --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
   } else if (format === '1080p') {
-    command = `${ytdlp} -f "bestvideo[height<=1080]+bestaudio/best[height<=1080]" -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best" --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
   } else if (format === '720p') {
-    command = `${ytdlp} -f "best[height<=720]" -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f "bestvideo[height<=720]+bestaudio/best[height<=720]/best" --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
   } else if (format === '480p') {
-    command = `${ytdlp} -f "best[height<=480]" -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} -f "bestvideo[height<=480]+bestaudio/best[height<=480]/best" --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
   } else {
-    command = `${ytdlp} -f best -o "${outputPath}.%(ext)s" "${url}"`;
+    command = `${ytdlp} --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
   }
   
   console.log('Downloading with command:', command);
@@ -186,7 +186,17 @@ export const downloadVideo = async (url, format, res) => {
     await execAsync(command, { maxBuffer: 500 * 1024 * 1024, shell: true });
   } catch (execError) {
     console.error('Download error:', execError.message);
-    throw new Error(`Download failed: ${execError.message}`);
+    if (execError.message.includes('Requested format is not available')) {
+      const fallbackCommand = `${ytdlp} --no-check-certificate -o "${outputPath}.%(ext)s" "${url}"`;
+      console.log('Retrying with best format:', fallbackCommand);
+      try {
+        await execAsync(fallbackCommand, { maxBuffer: 500 * 1024 * 1024, shell: true });
+      } catch (fallbackError) {
+        throw new Error(`Download failed: ${fallbackError.message}`);
+      }
+    } else {
+      throw new Error(`Download failed: ${execError.message}`);
+    }
   }
   
   const allFiles = fs.readdirSync(TEMP_VIDEO_DIR);
@@ -201,6 +211,7 @@ export const downloadVideo = async (url, format, res) => {
   const stat = fs.statSync(filePath);
   const ext = path.extname(downloadedFile);
   
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length');
   res.setHeader('Content-Type', ext === '.mp3' ? 'audio/mpeg' : 'video/mp4');
   res.setHeader('Content-Length', stat.size);
   res.setHeader('Content-Disposition', `attachment; filename="video${ext}"`);

@@ -43,11 +43,13 @@ router.post('/video-info', async (req, res) => {
 
 router.get('/download', async (req, res) => {
   try {
-    const { url, format } = req.query;
+    let { url, format } = req.query;
     
     if (!url) {
       return res.status(400).json({ error: 'URL is required' });
     }
+    
+    url = decodeURIComponent(url);
     
     if (!validateUrl(url)) {
       return res.status(400).json({ error: 'Invalid URL format' });
