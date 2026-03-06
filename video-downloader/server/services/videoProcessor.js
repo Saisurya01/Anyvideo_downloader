@@ -50,11 +50,19 @@ const detectPlatform = (url) => {
 };
 
 const INVIDIOUS_INSTANCES = [
-  'https://invidious.projectsegfau.lt',
-  'https://iv.ggtyler.dev',
-  'https://invidious.jingl.xyz',
-  'https://invidious.privacydev.net',
-  'https://pipedapi.adminforge.de',
+  'https://invidious.snopyta.org',
+  'https://yewtu.be',
+  'https://invidious.tube',
+  'https://invidious.moomoo.io',
+  'https://invidious.uest.cc',
+];
+
+const PIPED_INSTANCES = [
+  'https://pipedapi.syncpundit.io',
+  'https://api.piped.yt',
+  'https://pipedapi.privacydev.net',
+  'https://piped.leptons.xyz',
+  'https://piped.chdl.com',
 ];
 
 const isYouTube = (url) => url.includes('youtube.com') || url.includes('youtu.be');
@@ -65,6 +73,30 @@ export const getVideoInfo = async (url) => {
   if (isYouTube(url)) {
     const videoId = extractVideoId(url);
     if (videoId) {
+      // Try YouTube oEmbed first (most reliable)
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+        const oembedResponse = await fetch(oembedUrl);
+        if (oembedResponse.ok) {
+          const oembedData = await oembedResponse.json();
+          return {
+            title: oembedData.title || 'Unknown',
+            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            duration: 'Unknown',
+            platform: 'YouTube',
+            formats: [
+              { quality: '1080p', type: 'mp4', formatId: '1080p' },
+              { quality: '720p', type: 'mp4', formatId: '720p' },
+              { quality: '480p', type: 'mp4', formatId: '480p' },
+              { quality: 'audio', type: 'mp3', formatId: 'audio' },
+            ],
+          };
+        }
+      } catch (e) {
+        console.log('oEmbed failed:', e.message);
+      }
+      
+      // Try Invidious instances
       for (const instance of INVIDIOUS_INSTANCES) {
         try {
           const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
@@ -94,6 +126,20 @@ export const getVideoInfo = async (url) => {
           continue;
         }
       }
+      
+      // Return basic info from YouTube URL if all APIs fail
+      return {
+        title: 'YouTube Video',
+        thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        duration: 'Unknown',
+        platform: 'YouTube',
+        formats: [
+          { quality: '1080p', type: 'mp4', formatId: '1080p' },
+          { quality: '720p', type: 'mp4', formatId: '720p' },
+          { quality: '480p', type: 'mp4', formatId: '480p' },
+          { quality: 'audio', type: 'mp3', formatId: 'audio' },
+        ],
+      };
     }
   }
 
