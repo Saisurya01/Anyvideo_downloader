@@ -14,9 +14,6 @@ const YTDLP_CMD = process.platform === 'win32'
   ? 'python -m yt_dlp' 
   : 'yt-dlp';
 const YTDLP_EXTRA = '--no-check-certificate';
-const FFMPEG_PATH = 'ffmpeg';
-console.log('Using yt-dlp command:', YTDLP_CMD);
-console.log('Using ffmpeg path:', FFMPEG_PATH);
 
 // Use app directory for temp files to avoid path issues
 const TEMP_VIDEO_DIR = process.platform === 'win32' 
@@ -42,10 +39,15 @@ const detectPlatform = (url) => {
   if (url.includes('instagram.com')) return 'Instagram';
   if (url.includes('twitter.com') || url.includes('x.com')) return 'Twitter';
   if (url.includes('facebook.com') || url.includes('fb.watch')) return 'Facebook';
-  if (url.includes('reddit.com')) return 'Reddit';
+  if (url.includes('reddit.com') || url.includes('redd.it')) return 'Reddit';
   if (url.includes('twitch.tv')) return 'Twitch';
   if (url.includes('vimeo.com')) return 'Vimeo';
   if (url.includes('dailymotion.com')) return 'Dailymotion';
+  if (url.includes('snapchat.com')) return 'Snapchat';
+  if (url.includes('linkedin.com')) return 'LinkedIn';
+  if (url.includes('pinterest.com')) return 'Pinterest';
+  if (url.includes('imgur.com')) return 'Imgur';
+  if (url.includes('gyanipandit.com') || url.includes('sexeducation')) return 'GyanIPandit';
   return 'Unknown';
 };
 
